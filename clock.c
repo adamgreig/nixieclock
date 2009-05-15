@@ -7,6 +7,7 @@
 #include <WProgram.h>
 #include <stdlib.h>
 #include <avr/interrupt.h>
+#include <avr/sig-avr.h>
 #include <avr/io.h>
 
 //============================================================================
@@ -28,17 +29,19 @@
 #define R2 PB1
 
 //============================================================================
-// Helper Functions
+// Output Functions
 //----------------------------------------------
 
-//Set the latch pin low
+//Disable interrupts and set the latch pin low
 void start_data() {
+    cli();
     PORTD = (0<<RCK);
 }
 
-//Set latch pin high
+//Set latch pin high and re-enable interrupts
 void end_data() {
     PORTD = (1<<RCK);
+    sei();
 }
 
 //Shift out one given digit, correcting for mirrored nixie
@@ -82,13 +85,19 @@ void out_num(unsigned short int num) {
 
 void setup() {
 
-    DDRB  = (1<<PB0)  | (1<<PB1);
-    DDRC  = (1<<SHDN) | (1<<PC4) | (1<<PC5);
-    DDRD  = (0<<PD0)  | (0<<PD1) | (0<<PD2) | (0<<PD3);
-    DDRD |= (1<<RCK)  | (1<<SCK) | (1<<SER);
+    DDRB  = (1<<R1)     | (1<<R2);
+    DDRC  = (1<<SHDN)   | (1<<PC4)  | (1<<PC5);
+    DDRD  = (0<<C1)     | (0<<C2)   | (0<<C3)   | (0<<C4);
+    DDRD |= (1<<RCK)    | (1<<SCK)  | (1<<SER);
     
+    PORTB = (0<<R1)     | (0<<R2);
     PORTC = (0<<SHDN);
-    PORTD = (1<<RCK);
+    PORTD = (1<<C1)     | (1<<C2)   | (1<<C3)   | (1<<C4)   | (1<<RCK);
+    
+    EICRA = (0<<ISC11)  | (0<<ISC10);
+    EIMSK = (1<<INT1);
+    
+    sei();
 
 }
 
@@ -106,6 +115,41 @@ void loop() {
         end_data();
         delay(300);
     }
+}
+
+//============================================================================
+//============================================================================
+// Interrupt Handlers
+//----------------------------------------------
+
+INTERRUPT(SIG_INTERRUPT1) {
+    char op, arg;
+    
+    PORTB = (0<<R1) | (1<<R2);
+    
+    if(PIND & (1<<C4))
+        op = '+';
+    
+    if(PIND & (1<<C1))
+        arg = 'Y';
+    else if(PIND & (1<<C2))
+        arg = 'M';
+    else if(PIND & (1<<C3))
+        arg = 'D';
+    
+    PORTB = (1<<R1) | (0<<R2);
+    
+    if(PIND & (1<<C4))
+        op = '-';
+    
+    if(PIND & (1<<C1))
+        arg = 'h';
+    else if(PIND & (1<<C2))
+        arg = 'm';
+    else if(PIND & (1<<C3))
+        arg = 's';
+    
+    PORTB = (0<<R1) | (0<<R2);
     
 }
 
