@@ -4,11 +4,10 @@
 //============================================================================
 // Includes
 //----------------------------------------------
-#include <WProgram.h>
 #include <stdlib.h>
 #include <avr/interrupt.h>
-#include <avr/sig-avr.h>
 #include <avr/io.h>
+#include <util/delay.h>
 
 //============================================================================
 // Constants
@@ -29,19 +28,87 @@
 #define R2 PB1
 
 //============================================================================
+// Globals
+//----------------------------------------------
+
+volatile unsigned short int num;
+
+//============================================================================
+//============================================================================
+// Input Functions
+//----------------------------------------------
+
+//Scan the input matrix
+void scan_input() {
+    
+    char op = 0x00;
+    char arg = 0x00;
+    
+    //Row 1
+    PORTB = (0<<R1) | (1<<R2);
+    _delay_ms(5);
+    
+    if((PIND & (1<<C4)) == 0)
+        op = '+';
+    
+    if((PIND & (1<<C3)) == 0)
+        arg = 'Y';
+    
+    if((PIND & (1<<C2)) == 0)
+        arg = 'M';
+    
+    if((PIND & (1<<C1)) == 0)
+        arg = 'D';
+    
+    //Row 2
+    PORTB = (1<<R1) | (0<<R2);
+    _delay_ms(5);
+    
+    if((PIND & (1<<C4)) == 0)
+        op = '-';
+    
+    if((PIND & (1<<C3)) == 0)
+        arg = 's';
+    
+    if((PIND & (1<<C2)) == 0)
+        arg = 'm';
+    
+    if((PIND & (1<<C1)) == 0)
+        arg = 'h';
+    
+    //Finish
+    PORTB = (1<<R1) | (1<<R2);
+    
+    //Apply
+    if(arg == 'Y') {
+        if(op == '+')
+            num = (num + 10) % 100;
+        else if(op == '-')
+            num = (num - 10) % 100;
+    } else if(arg == 'M') {
+        if(op == '+')
+            num = (num + 1) % 100;
+        else if(op == '-')
+            num = (num - 1) % 100;
+    }
+
+}
+
+
+//============================================================================
 // Output Functions
 //----------------------------------------------
 
 //Disable interrupts and set the latch pin low
 void start_data() {
-    cli();
-    PORTD = (0<<RCK);
+    EIMSK = (0<<INT1);
+    PORTD = (0<<C1) | (0<<C2)   | (0<<C3)   | (0<<C4)   | (0<<RCK);
 }
 
 //Set latch pin high and re-enable interrupts
 void end_data() {
-    PORTD = (1<<RCK);
-    sei();
+    PORTD = (1<<C1) | (1<<C2)   | (1<<C3)   | (1<<C4)   | (1<<RCK);
+    EIMSK = (0<<INT1);
 }
 
 //Shift out one given digit, correcting for mirrored nixie
@@ -90,31 +157,24 @@ void setup() {
     DDRD  = (0<<C1)     | (0<<C2)   | (0<<C3)   | (0<<C4);
     DDRD |= (1<<RCK)    | (1<<SCK)  | (1<<SER);
     
-    PORTB = (0<<R1)     | (0<<R2);
+    PORTB = (1<<R1)     | (1<<R2);
     PORTC = (0<<SHDN);
     PORTD = (1<<C1)     | (1<<C2)   | (1<<C3)   | (1<<C4)   | (1<<RCK);
     
     EICRA = (0<<ISC11)  | (0<<ISC10);
-    EIMSK = (1<<INT1);
-    
-    sei();
 
 }
 
 //============================================================================
-//============================================================================
 // Main Loop
 //----------------------------------------------
 
-
 void loop() {
-    unsigned int i;
-    for(i=0; i<100; i++) {
-        start_data();
-        out_num(i);
-        end_data();
-        delay(300);
-    }
+    scan_input();
+    start_data();
+    out_num(num);
+    end_data();
+    _delay_ms(500);
 }
 
 //============================================================================
@@ -122,44 +182,16 @@ void loop() {
 // Interrupt Handlers
 //----------------------------------------------
 
-INTERRUPT(SIG_INTERRUPT1) {
-    char op, arg;
-    
-    PORTB = (0<<R1) | (1<<R2);
-    
-    if(PIND & (1<<C4))
-        op = '+';
-    
-    if(PIND & (1<<C1))
-        arg = 'Y';
-    else if(PIND & (1<<C2))
-        arg = 'M';
-    else if(PIND & (1<<C3))
-        arg = 'D';
-    
-    PORTB = (1<<R1) | (0<<R2);
-    
-    if(PIND & (1<<C4))
-        op = '-';
-    
-    if(PIND & (1<<C1))
-        arg = 'h';
-    else if(PIND & (1<<C2))
-        arg = 'm';
-    else if(PIND & (1<<C3))
-        arg = 's';
-    
-    PORTB = (0<<R1) | (0<<R2);
+ISR(INT1_vect) {
     
 }
 
 //============================================================================
 //============================================================================
-// Arduino Wrapper
+// Code entry point
 //----------------------------------------------
 
 int main(void) {
-    init();
     setup();
     for(;;)
         loop();
