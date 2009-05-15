@@ -14,9 +14,18 @@
 //----------------------------------------------
 
 #define SHDN PC0
+
 #define SCK PD5
 #define RCK PD6
 #define SER PD7
+
+#define C1 PD0
+#define C2 PD1
+#define C3 PD2
+#define C4 PD3
+
+#define R1 PB0
+#define R2 PB1
 
 //============================================================================
 // Helper Functions
@@ -73,10 +82,10 @@ void out_num(unsigned short int num) {
 
 void setup() {
 
-    DDRB = (1<<PB0)  | (1<<PB1);
-    DDRC = (1<<SHDN) | (1<<PC4) | (1<<PC5);
-    DDRD = (0<<PD0)  | (0<<PD1) | (0<<PD2) | (0<<PD3);
-    DDRD |= (1<<RCK) | (1<<SCK) | (1<<SER);
+    DDRB  = (1<<PB0)  | (1<<PB1);
+    DDRC  = (1<<SHDN) | (1<<PC4) | (1<<PC5);
+    DDRD  = (0<<PD0)  | (0<<PD1) | (0<<PD2) | (0<<PD3);
+    DDRD |= (1<<RCK)  | (1<<SCK) | (1<<SER);
     
     PORTC = (0<<SHDN);
     PORTD = (1<<RCK);
