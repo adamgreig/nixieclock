@@ -48,7 +48,6 @@ void i2c_start() {
 // Generate a STOP condition
 void i2c_stop() {
     TWCR = (1<<TWINT) | (1<<TWEN) | (1<<TWSTO);
-    while(!(TWCR & (1<<TWINT)));
 }
 
 // Send one byte over I2C
