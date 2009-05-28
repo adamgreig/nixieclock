@@ -80,6 +80,21 @@ void loop() {
         power_on();
         input_scan();
         shift_out_time();
+    } else if(hour_t == 0 && hour_u == 0 && min_t == 0 && min_u == 0) {
+        // If it's 00:00 then cycle through all digits to prevent cathode
+        //  poisoning.
+        power_on();
+        unsigned short int i;
+        for(i=0; i<10; i++) {
+            shift_start_data();
+            
+            unsigned short int j;
+            for(j=0; j<6; j++) {
+                shift_num(i);
+            }
+            
+            shift_end_data();
+        }
     } else {
         // Or if not, turn off the PSU, disabling the tubes
         power_off();
