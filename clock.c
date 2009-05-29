@@ -94,6 +94,8 @@ void loop() {
             }
             
             shift_end_data();
+            
+            _delay_ms(1000);
         }
     } else {
         // Or if not, turn off the PSU, disabling the tubes
